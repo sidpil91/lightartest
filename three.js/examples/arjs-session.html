@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<meta name='viewport' content='width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0'>
+<!-- three.js library -->
+<script src='../examples/vendor/three.js/build/three.js'></script>
+<!-- include for artoolkit trackingBackend -->
+<script src='../vendor/jsartoolkit5/build/artoolkit.min.js'></script>
+<script src='../vendor/jsartoolkit5/js/artoolkit.api.js'></script>
+<!-- include for aruco trackingBackend -->
+<script src='../vendor/js-aruco/src/svd.js'></script> 
+<script src='../vendor/js-aruco/src/posit1.js'></script> 
+<script src='../vendor/js-aruco/src/cv.js'></script> 
+<script src='../vendor/js-aruco/src/aruco.js'></script> 
+<script src='../threex/threex-aruco/threex-arucocontext.js'></script> 
+<script src='../threex/threex-aruco/threex-arucodebug.js'></script>
+<!-- include for tango trackingBackend -->
+<script src='../vendor/chromium-tango/THREE.WebAR.js'></script>
+<!-- include ar.js -->
+<script src='../arjs-utils.js'></script>
+<script src='../arjs-session.js'></script>
+<script src='../arjs-anchor.js'></script>
+<script src='../arjs-hittester.js'></script>
+<script src='../arjs-tangovideomesh.js'></script>
+<script src='../arjs-tangopointcloud.js'></script>
+<script src='../threex-artoolkitsource.js'></script>
+<script src='../threex-artoolkitcontext.js'></script>
+<script src='../threex-artoolkitprofile.js'></script>
+<script src='../threex-arbasecontrols.js'></script>
+<script src='../threex-armarkercontrols.js'></script>
+<script src='../threex-armarkerhelper.js'></script>
+<script src='../threex-arsmoothedcontrols.js'></script>
+<script src='../threex-arclickability.js'></script>
+<script>THREEx.ArToolkitContext.baseURL = '../'</script>
+
+<script src='multi-markers/threex-armultimarkerutils.js'></script>
+<script src='multi-markers/threex-armultimarkercontrols.js'></script>
+<script src='multi-markers/threex-armultimarkerlearning.js'></script>
+
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'><div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
+	<a href='https://github.com/jeromeetienne/AR.js/' target='_blank'>AR.js</a> - switching between backend
+	by <a href='https://twitter.com/jerome_etienne' target='_blank'>@jerome_etienne</a>
+	<br/>
+	Marker image 
+	<a href='../../data/images/hiro.jpg' target='_blank'>hiro for artoolkit</a>
+	/
+	<a href='../../three.js/threex/threex-aruco/examples/images/1001.png' target='_blank'>1001 for aruco</a>
+	<br/>
+	<strong>Tracking Method:</strong> <span id='trackingMethod'>unknown</span>
+	- 
+	Switch to : 
+	<a href='#artoolkit' onclick='location.reload()'>artoolkit</a>
+	/ 
+	<a href='#aruco' onclick='location.reload()'>aruco</a>
+	/ 
+	<a href='#area-artoolkit' onclick='location.reload()'>area artoolkit</a>
+	/ 
+	<a href='#area-aruco' onclick='location.reload()'>area aruco</a>
+	/ 
+	<a href='#tango' onclick='location.reload()'>tango</a>
+	/ 
+	<a href='#best' onclick='location.reload()'>best</a>
+	<br/>
+	<a href='javascript:void(0)' id='buttonTangoTogglePointCloud'>toggle point cloud</a>
+	-
+	<a href='javascript:void(0)' id='buttonToggleMarkerHelpers'>toggle marker helper</a>
+	-
+	<a href='javascript:void(0)' id='buttonMarkersAreaLearner'>Learn new marker area</a>
+	-
+	<a href='javascript:void(0)' id='buttonMarkersAreaReset'>Reset marker area</a>
+</div><script>
+;(function(){
+// TODO put that in a function
+	var trackingMethod = location.hash.substring(1) ? location.hash.substring(1) : 'best'
+
+	if( trackingMethod === 'best' ){
+		var trackingMethod = ARjs.Utils.isTango() ? 'tango' : 'area-artoolkit'
+	}
+	
+	if( trackingMethod.startsWith('area-') ){
+		var trackingBackend = trackingMethod.replace('area-', '')
+	}else{
+		var trackingBackend = trackingMethod
+	}
+	
+	document.querySelector('#trackingMethod').innerHTML = trackingMethod
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	//		Init
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	// init renderer
+	var renderer	= new THREE.WebGLRenderer({
+		antialias: true,
+		alpha: true
+	});
+	renderer.autoClear = false;
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+	
+	// array of functions for the rendering loop
+	var onRenderFcts= [];
+	
+	// init scene and camera
+	var scene	= new THREE.Scene();
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	//		Initialize the camera
+	//////////////////////////////////////////////////////////////////////////////////
+
+	var camera = ARjs.Utils.createDefaultCamera(trackingMethod)
+	scene.add(camera);
+	
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+
+	var arProfile = new THREEx.ArToolkitProfile()
+		.sourceWebcam()
+		.trackingMethod(trackingMethod)
+		.defaultMarker()
+
+	// FIXME temporary placeholder - to reevaluate later
+	if( trackingMethod === 'tango' ){
+		arProfile.sourceImage(THREEx.ArToolkitContext.baseURL + '../data/images/img.jpg')
+	}	
+	
+	// honor changeMatrixMode
+	// arProfile.defaultMarkerParameters.changeMatrixMode = 'cameraTransformMatrix'
+	arProfile.defaultMarkerParameters.changeMatrixMode = 'modelViewMatrix'
+
+
+	//////////////////////////////////////////////////////////////////////////////
+	//		build ARjs.Session
+	//////////////////////////////////////////////////////////////////////////////
+
+	var arSession = new ARjs.Session({
+		scene: scene,
+		renderer: renderer,
+		camera: camera,
+		sourceParameters: arProfile.sourceParameters,
+		contextParameters: arProfile.contextParameters		
+	})
+	onRenderFcts.push(function(){
+		arSession.update()
+	})
+	
+	////////////////////////////////////////////////////////////////////////////////
+	//          Create a ArMarkerControls
+	////////////////////////////////////////////////////////////////////////////////
+
+	var arAnchor = new ARjs.Anchor(arSession, arProfile.defaultMarkerParameters)
+	onRenderFcts.push(function(){
+		arAnchor.update()
+	})
+
+	//////////////////////////////////////////////////////////////////////////////
+	//                handle videoMesh for tango
+	//////////////////////////////////////////////////////////////////////////////
+
+	
+	var hitTester = new ARjs.HitTester(arSession)
+	onRenderFcts.push(function(){
+		hitTester.update(camera, arAnchor.object3d)
+	})
+
+	// tango only - picking to set object position
+        renderer.domElement.addEventListener("click", function(domEvent) {
+		var hitTestResults = hitTester.testDomEvent(domEvent)
+		if( hitTestResults.length === 0 )	return
+
+		var hitTestResult = hitTestResults[0]
+		arAnchor.applyHitTestResult(hitTestResult)
+	})
+
+	
+	if( trackingMethod === 'tango' ){
+		var tangoVideoMesh = new ARjs.TangoVideoMesh(arSession)
+		onRenderFcts.push(function(){
+			tangoVideoMesh.update()
+		})
+	}
+	
+	if( trackingMethod === 'tango' ){
+		var tangoPointCloud = new ARjs.TangoPointCloud(arSession)
+		scene.add(tangoPointCloud.object3d)
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////
+	//		Code Separator
+	//////////////////////////////////////////////////////////////////////////////
+	
+	if( trackingMethod === 'tango' ){
+		document.querySelector('#buttonTangoTogglePointCloud').addEventListener('click', function(){
+			if( tangoPointCloud.object3d.parent ){
+				scene.remove(tangoPointCloud.object3d)
+			}else{
+				scene.add(tangoPointCloud.object3d)			
+			}
+		})
+	}else{
+		document.querySelector('#buttonTangoTogglePointCloud').style.display = 'none'
+	}
+	
+	if( arAnchor.parameters.markersAreaEnabled ){
+		var subMarkerHelpersVisible = false
+		document.querySelector('#buttonToggleMarkerHelpers').addEventListener('click', function(){
+			subMarkerHelpersVisible = subMarkerHelpersVisible ? false : true
+			arAnchor.markersArea.setSubMarkersVisibility(subMarkerHelpersVisible)
+		})
+
+
+		document.querySelector('#buttonMarkersAreaReset').addEventListener('click', function(){
+			THREEx.ArMultiMarkerUtils.storeDefaultMultiMarkerFile(trackingBackend)
+			location.reload()
+		})
+
+		document.querySelector('#buttonMarkersAreaLearner').addEventListener('click', function(){
+			var learnerBaseURL = 'multi-markers/examples/learner.html'
+			THREEx.ArMultiMarkerUtils.navigateToLearnerPage(learnerBaseURL, trackingBackend)
+		})		
+	}else{
+		document.querySelector('#buttonToggleMarkerHelpers').style.display = 'none'
+		document.querySelector('#buttonMarkersAreaReset').style.display = 'none'
+		document.querySelector('#buttonMarkersAreaLearner').style.display = 'none'
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//		add an object in the scene
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	var mesh = new THREE.AxisHelper()
+	arAnchor.object3d.add(mesh)
+	
+	// add a torus knot	
+	var geometry	= new THREE.CubeGeometry(1,1,1);
+	var material	= new THREE.MeshNormalMaterial({
+		transparent : true,
+		opacity: 0.5,
+		side: THREE.DoubleSide
+	}); 
+	var mesh	= new THREE.Mesh( geometry, material );
+	mesh.position.y	= geometry.parameters.height/2
+	arAnchor.object3d.add( mesh );
+	
+	var geometry	= new THREE.TorusKnotGeometry(0.3,0.1,64,16);
+	var material	= new THREE.MeshNormalMaterial(); 
+	var mesh	= new THREE.Mesh( geometry, material );
+	mesh.position.y	= 0.5
+	arAnchor.object3d.add( mesh );
+	
+	onRenderFcts.push(function(delta){
+		mesh.rotation.x += Math.PI*delta
+	})
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	//		render the whole thing on the page
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	// render the scene
+	onRenderFcts.push(function(){
+		// Render the see through camera scene
+		renderer.clear()
+		
+		// render videoMesh for tango
+		if( trackingMethod === 'tango' ){
+			tangoVideoMesh.render()
+		}
+		
+		renderer.render( scene, camera );
+	})
+	
+	// run the rendering loop
+	var lastTimeMsec= null
+	requestAnimationFrame(function animate(nowMsec){
+		// keep looping
+		requestAnimationFrame( animate );
+		// measure time
+		lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+		var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+		lastTimeMsec	= nowMsec
+		// call each update function
+		onRenderFcts.forEach(function(onRenderFct){
+			onRenderFct(deltaMsec/1000, nowMsec/1000)
+		})
+	})
+})()
+</script></body>
