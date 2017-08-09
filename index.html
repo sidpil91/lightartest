@@ -5,6 +5,8 @@
 <script src="https://rawgit.com/oscarmarinmiro/aframe-video-controls/master/dist/aframe-video-controls.min.js"></script>
 </head> 
 <body style='margin : 0px; overflow: hidden;'>
+<button onclick="playVid()" type="button">Play Video</button>
+<button onclick="pauseVid()" type="button">Pause Video</button><br> 
 	<a-scene embedded arjs='sourceType: webcam;'>
 		<a-assets>
    		 <video id="soccer-test" loop="true" src="demo.webm"></video>
@@ -17,3 +19,14 @@ true
 		<a-marker-camera preset='hiro'></a-marker-camera>
 	</a-scene>
 </body>
+<script> 
+var vid = document.getElementById("soccer-test"); 
+
+function playVid() { 
+    vid.play(); 
+} 
+
+function pauseVid() { 
+    vid.pause(); 
+} 
+</script> 
