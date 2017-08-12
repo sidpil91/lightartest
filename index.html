@@ -5,15 +5,18 @@
 </head> 
 <body style='margin : 0px; overflow: hidden;'>
 
-	<a-scene embedded arjs='sourceType: webcam;'>
+	<a-scene embedded arjs='sourceType: webcam;' detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
 		<a-assets>
-   		 <video id="soccer-test" autoplay loop="true" src="pixar.webm"></video>
+   		 <video id="pixar-test" autoplay loop="true" src="pixar.webm"></video>
+   		 <video id="burger-test" autoplay loop="true" src="burger.webm"></video>
   		</a-assets>
-true
-  		<!-- Using the asset management system. -->
-  		<a-video src="#soccer-test" width="3" height="2" position="0 0.5 0"></a-video>
-  		<!-- <a-marker-camera type='pattern' and patternUrl='https://sidpil91.github.io/lightartest/pattern-marker.patt'></a-marker-camera> -->
-		<a-marker-camera preset='hiro'></a-marker-camera>
+  		<a-marker preset='hiro'>
+			<a-video src="#pixar-test" width="3" height="2" position="0 0.5 0"></a-video>
+		</a-marker>
+		<a-marker preset='kanji'>
+			<a-video src="#burger-test" width="3" height="2" position="0 0.5 0"></a-video>
+		</a-marker>
+		<a-entity camera></a-entity>
 	</a-scene>
 </body>
 
