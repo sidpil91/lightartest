@@ -2785,6 +2785,9 @@ AFRAME.registerComponent('arjsmarker', {
 		}else if( this.data.preset === 'kanji' ){
 			this.data.type = 'pattern'
 			this.data.patternUrl = THREEx.ArToolkitContext.baseURL+'examples/marker-training/examples/pattern-files/pattern-kanji.patt'
+		}else if( this.data.preset === 'burger' ){
+			this.data.type = 'pattern'
+			this.data.patternUrl = THREEx.ArToolkitContext.hostURL+'examples/marker-training/examples/pattern-files/burger-marker.patt'
 		}else if( this.data.preset === 'area' ){
 			this.data.type = 'area'
 		}else {
