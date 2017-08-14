@@ -1351,12 +1351,12 @@ THREEx.ArToolkitSource.prototype._initSourceVideo = function(onReady) {
 	domElement.src = this.parameters.sourceUrl
 
 	domElement.style.objectFit = 'initial'
-
+    domElement.muted = true;
 	domElement.autoplay = true;
 	domElement.webkitPlaysinline = true;
-	domElement.controls = false;
+	domElement.controls = true;
 	domElement.loop = true;
-	domElement.muted = true
+	
 
 	// trick to trigger the video on android
 	document.body.addEventListener('click', function onClick(){
