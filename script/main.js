@@ -1,21 +1,20 @@
+
 'use strict';
 
-var button = document.querySelector('#button1');
-var video = document.querySelector('#pixar-test');
+var video = document.querySelector('#apixar');
 
-button.onclick = function() {
-  if (video.paused) {
-    video.play();
-    button.textContent = 'Pause';
-  } else {
-    video.pause();
-    button.textContent = 'Play';
-  }
-};
+var promise = video.play();
 
-video.onplay = function() {
-  button.textContent = 'Pause';
-};
+// promise won’t be defined in browsers that don't support promisified play()
+if (promise === undefined) {
+  console.log('Promisified video play() not supported');
+} else {
+  promise.then(function() {
+    console.log('Video playback successfully initiated, returning a promise');
+  }).catch(function(error) {
+    console.log('Error initiating video playback: ', error);
+  });
+}
 
 video.onloadedmetadata = function() {
   var fileName = this.currentSrc.replace(/^.*[\\/]/, '');

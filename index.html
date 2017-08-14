@@ -7,14 +7,12 @@
 
 	<a-scene embedded arjs='sourceType: webcam;' detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
 		<a-assets>
-   		 <video id="pixar-test" controls>
-   		 	<source src="pixar.webm" type="video/webm" />
-   		 </video>
-   		 <video id="burger-test" autoplay muted loop src="burger.webm"></video>
+   		 <video id="pixar-test" muted autoplay loop="true" src="pixar.webm"></video>
+   		 <video id="burger-test" muted autoplay loop="true" src="burger.webm"></video>
   		</a-assets>
   		<a-marker preset='hiro'>
-  			<button id="button1">Play</button>
-			<a-video src="#pixar-test" width="3" height="2" position="0 0.5 0"></a-video>
+			<a-video id="apixar" src="#pixar-test" width="3" height="2" position="0 0.5 0"></a-video>
+			<script src="script/main.js"></script>
 		</a-marker>
 		<a-marker preset='kanji'>
 			<a-video src="#burger-test" width="3" height="2" position="0 0.5 0"></a-video>
